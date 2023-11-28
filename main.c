@@ -59,7 +59,6 @@ int main(int argc, char **argv) {
   // entry point
   xelf_inject_set_exitpoint(&inject);
 
-  printf("%lu\n", cypher.len);
   xelf_inject_find_and_replace(&inject, 0xCCCCCCCCCCCCCCCC, cypher.addr);
   xelf_inject_find_and_replace(&inject, 0xBBBBBBBBBBBBBBBB, cypher.len);
 

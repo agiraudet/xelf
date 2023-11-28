@@ -67,9 +67,9 @@ void xelf_wip_cypher(struct cypher *cypher) {
     return;
   cypher->key = (uint8_t *)strdup("0123456789ABCDEF");
   cypher->key_len = strlen((char *)cypher->key);
-  for (size_t i = 0; i < cypher->key_len; i++)
-    printf("0x%X, ", cypher->key[i]);
-  printf("\n");
+  /* for (size_t i = 0; i < cypher->key_len; i++) */
+  /*   printf("0x%X, ", cypher->key[i]); */
+  /* printf("\n"); */
   cypher->len = 0;
   cypher->start = 0;
   cypher->addr = 0;
@@ -78,7 +78,6 @@ void xelf_wip_cypher(struct cypher *cypher) {
 void xelf_sec_encrypt_xor(struct xelf *xelf, Elf64_Shdr *sec,
                           struct cypher *cypher) {
   uint8_t *code_start = xelf->elf + sec->sh_offset;
-  printf("%lx\n", sec->sh_addr);
   for (unsigned int i = 0; i < sec->sh_size; i++) {
     code_start[i] ^= cypher->key[i % cypher->key_len];
   }

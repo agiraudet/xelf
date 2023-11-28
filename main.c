@@ -22,6 +22,16 @@ int main(int argc, char **argv) {
     return 3;
   }
 
+  //////////////////////////////////////////////////
+  struct cypher cypher;
+  xelf_wip_cypher(&cypher);
+
+  Elf64_Shdr *text_sec = xelf_find_sec_by_name(&xelf, ".text");
+  xelf_sec_encrypt_xor(&xelf, text_sec, &cypher);
+  xelf_sec_set_perm(text_sec, (SHF_WRITE | SHF_ALLOC | SHF_EXECINSTR));
+
+  //////////////////////////////////////////////////
+
   // find a code segment (which will be load and executed) for injection
   Elf64_Phdr *code_seg = xelf_find_seg_by_charac(&xelf, PT_LOAD, (PF_R | PF_X));
   if (!code_seg) {
@@ -33,7 +43,7 @@ int main(int argc, char **argv) {
   // add the write permission to it for futur self modifying code
   // Maybe we also need to enable it on each sections ? Idk, but should not be
   // hard
-  /* xelf_seg_set_flags(code_seg, (PF_R | PF_X | PF_W)); */
+  xelf_seg_set_flags(code_seg, (PF_R | PF_X | PF_W));
 
   // Load the parasite from the payload file
   struct inject inject;
@@ -48,6 +58,10 @@ int main(int argc, char **argv) {
   // Parse the paylod code to replace the placeholder with the original elf
   // entry point
   xelf_inject_set_exitpoint(&inject);
+
+  printf("%lu\n", cypher.len);
+  xelf_inject_find_and_replace(&inject, 0xCCCCCCCCCCCCCCCC, cypher.addr);
+  xelf_inject_find_and_replace(&inject, 0xBBBBBBBBBBBBBBBB, cypher.len);
 
   // Actual injection
   xelf_inject(&xelf, &inject);

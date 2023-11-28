@@ -62,6 +62,31 @@ void xelf_sec_show_perm(Elf64_Shdr *sec) {
          sec->sh_flags & SHF_EXECINSTR ? 'x' : '-');
 }
 
+void xelf_wip_cypher(struct cypher *cypher) {
+  if (!cypher)
+    return;
+  cypher->key = (uint8_t *)strdup("0123456789ABCDEF");
+  cypher->key_len = strlen((char *)cypher->key);
+  for (size_t i = 0; i < cypher->key_len; i++)
+    printf("0x%X, ", cypher->key[i]);
+  printf("\n");
+  cypher->len = 0;
+  cypher->start = 0;
+  cypher->addr = 0;
+}
+
+void xelf_sec_encrypt_xor(struct xelf *xelf, Elf64_Shdr *sec,
+                          struct cypher *cypher) {
+  uint8_t *code_start = xelf->elf + sec->sh_offset;
+  printf("%lx\n", sec->sh_addr);
+  for (unsigned int i = 0; i < sec->sh_size; i++) {
+    code_start[i] ^= cypher->key[i % cypher->key_len];
+  }
+  cypher->len = sec->sh_size;
+  cypher->start = (Elf64_Addr)code_start;
+  cypher->addr = sec->sh_addr;
+}
+
 Elf64_Phdr *xelf_find_seg_by_charac(struct xelf *xelf, uint32_t type,
                                     uint32_t flags) {
   if (!xelf)
@@ -123,6 +148,34 @@ void xelf_inject_patch_header(struct xelf *xelf, struct inject *inject) {
     Elf64_Off sec_end = sec->sh_offset + sec->sh_size;
     if (inject->offset == sec_end) {
       sec->sh_size += inject->size;
+      return;
+    }
+  }
+}
+
+void xelf_inject_find_and_replace(struct inject *inject, long old,
+                                  long current) {
+  if (!inject)
+    return;
+  uint8_t *ptr = (uint8_t *)inject->code;
+  for (unsigned int i = 0; i < inject->size; i++) {
+    long current_QWORD = *((long *)(ptr + i));
+    if (!(old ^ current_QWORD)) {
+      *((long *)(ptr + i)) = current;
+      return;
+    }
+  }
+}
+
+void xelf_inject_find_and_replace_32(struct inject *inject, uint32_t old,
+                                     uint32_t current) {
+  if (!inject)
+    return;
+  uint8_t *ptr = (uint8_t *)inject->code;
+  for (unsigned int i = 0; i < inject->size; i++) {
+    long current_QWORD = *((long *)(ptr + i));
+    if (!(old ^ current_QWORD)) {
+      *((long *)(ptr + i)) = current;
       return;
     }
   }

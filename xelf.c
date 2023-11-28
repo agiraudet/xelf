@@ -117,7 +117,7 @@ void xelf_inject_patch_header(struct xelf *xelf, struct inject *inject) {
   if (!xelf || !inject)
     return;
   inject->og_entry = xelf->header->e_entry;
-  xelf->header->e_entry = inject->offset;
+  xelf->header->e_entry = inject->addr;
   for (unsigned int i = 0; i < xelf->header->e_shnum; i++) {
     Elf64_Shdr *sec = &xelf->sec_header_tab[i];
     Elf64_Off sec_end = sec->sh_offset + sec->sh_size;

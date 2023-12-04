@@ -84,6 +84,7 @@ void xelf_sec_encrypt_xor(struct xelf *xelf, Elf64_Shdr *sec,
   cypher->len = sec->sh_size;
   cypher->start = (Elf64_Addr)code_start;
   cypher->addr = sec->sh_addr;
+  cypher->offset = sec->sh_offset;
 }
 
 Elf64_Phdr *xelf_find_seg_by_charac(struct xelf *xelf, uint32_t type,
@@ -142,11 +143,13 @@ void xelf_inject_patch_header(struct xelf *xelf, struct inject *inject) {
     return;
   inject->og_entry = xelf->header->e_entry;
 
-  if (xelf->header->e_type == ET_EXEC)
+  if (xelf->header->e_type == ET_EXEC) {
     xelf->header->e_entry = inject->addr;
-  else if (xelf->header->e_type == ET_DYN)
+    printf("exec\n");
+  } else if (xelf->header->e_type == ET_DYN) {
     xelf->header->e_entry = inject->offset;
-  else
+    printf("dyn\n");
+  } else
     fprintf(stderr, "elf is neither ET_EXEC nor ET_DYN\n");
 
   for (unsigned int i = 0; i < xelf->header->e_shnum; i++) {

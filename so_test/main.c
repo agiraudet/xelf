@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
   xelf_wip_cypher(&cypher);
 
   Elf64_Shdr *text_sec = xelf_find_sec_by_name(&xelf, ".text");
-  // xelf_sec_encrypt_xor(&xelf, text_sec, &cypher);
+  xelf_sec_encrypt_xor(&xelf, text_sec, &cypher);
   // xelf_sec_set_perm(text_sec, (SHF_WRITE | SHF_ALLOC | SHF_EXECINSTR));
 
   //////////////////////////////////////////////////

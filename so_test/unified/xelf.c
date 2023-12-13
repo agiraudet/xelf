@@ -303,8 +303,11 @@ int xelf_pack(const char *path) {
     return 3;
   }
   xelf_seg_set_flags(code_seg, (PF_R | PF_X | PF_W));
+
+  // TODO replace with headers, not from file
   if (xelf->header->e_type == ET_DYN)
     xelf_inject_load_from_file(&inject, "so_payload");
   else if (xelf->header->e_type == ET_EXEC)
     xelf_inject_load_from_file(&inject, "payload");
+  ///////
 }

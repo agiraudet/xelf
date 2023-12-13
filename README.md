@@ -1,37 +1,23 @@
 # XELF
 
-Elf utility collection to make woody easier
+Wip Woody project
 
 ## Usage
 
-compile the payload :
+compile both the payloads (for staticly vs dynamically linked):
 ```
-nasm -f bin payload.asm -o playload
-```
-compile the example :
-```
-gcc main.c xelf.c -o demo
+nasm -f bin src/payload_dyn.asm -o playload_dyn
+nasm -f bin src/payload_exec.asm -o playload_exec
 ```
 
-compile the target :
+compile the packer:
 ```
-gcc hello.c -o hello
-```
-
-Run the target, to test it, then inject it :
-```
-./hello
-./demo hello
-```
-
-Then run it to test the result :
-```
-./hello
+gcc -Iinc src/*.c -o woody
 ```
 
 ## Notes
 
-Currently the injector only work on executables type: ET_EXEC.
-It can be easily adapted to work on shared objects as well (ET_DYN)
-
+`grep -rni TODO` to see whats still need to be done.
+Yes I will add a makefile.
+Run `xxd -i payload_exec` to see how to add the payload opcode to a C header file.
 packer.c is the code from [this serie of medium articles](https://medium.com/analytics-vidhya/malware-engineering-part-0x2-finding-shelter-for-parasite-751145dd18d0)

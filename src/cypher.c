@@ -1,7 +1,9 @@
 #include "cypher.h"
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 uint8_t *cypher_genkey(size_t len) {
@@ -31,7 +33,9 @@ void cypher_init(struct cypher *cypher) {
   if (!cypher)
     return;
   cypher->key_len = 16;
-  cypher->key = cypher_genkey(cypher->key_len);
+  // TODO
+  /* cypher->key = cypher_genkey(cypher->key_len); */
+  cypher->key = (uint8_t *)strdup("0123456789ABCDEF");
   cypher->len = 0;
   cypher->start = 0;
   cypher->addr = 0;

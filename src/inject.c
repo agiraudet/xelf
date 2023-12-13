@@ -1,4 +1,5 @@
 #include "inject.h"
+#include "cypher.h"
 #include "xelf.h"
 #include <fcntl.h>
 #include <stdio.h>
@@ -77,20 +78,6 @@ void inject_find_and_replace(struct inject *inject, long old, long current) {
   }
 }
 
-void inject_find_and_replace_32(struct inject *inject, uint32_t old,
-                                uint32_t current) {
-  if (!inject)
-    return;
-  uint8_t *ptr = (uint8_t *)inject->code;
-  for (unsigned int i = 0; i < inject->size; i++) {
-    long current_QWORD = *((long *)(ptr + i));
-    if (!(old ^ current_QWORD)) {
-      *((long *)(ptr + i)) = current;
-      return;
-    }
-  }
-}
-
 void inject_set_exitpoint(struct inject *inject) {
   if (!inject)
     return;
@@ -105,6 +92,27 @@ void inject_set_exitpoint(struct inject *inject) {
   }
 }
 
-void inject(struct xelf *xelf, struct inject *inject) {
-  memcpy(xelf->elf + inject->offset, inject->code, inject->size);
+int inject_cypher(struct xelf *xelf, Elf64_Phdr *code_seg,
+                  struct cypher *cypher) {
+  struct inject inject;
+  if (!xelf)
+    return 1;
+  // TODO check every return code
+  if (xelf->header->e_type == ET_EXEC)
+    inject_load_from_file(&inject, "payload_exec");
+  else if (xelf->header->e_type == ET_DYN)
+    inject_load_from_file(&inject, "payload_dyn");
+  else
+    return 2;
+  inject_set_entrypoint(code_seg, &inject);
+  inject_patch_header(xelf, &inject);
+  inject_set_exitpoint(&inject);
+  if (xelf->header->e_type == ET_EXEC)
+    inject_find_and_replace(&inject, 0xCCCCCCCCCCCCCCCC, cypher->addr);
+  else if (xelf->header->e_type == ET_DYN)
+    inject_find_and_replace(&inject, 0xCCCCCCCCCCCCCCCC, cypher->offset);
+  inject_find_and_replace(&inject, 0xBBBBBBBBBBBBBBBB, cypher->len);
+  // TODO FIND AND REPLACE KEY
+  memcpy(xelf->elf + inject.offset, inject.code, inject.size);
+  return 0;
 }

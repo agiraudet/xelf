@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 struct xelf;
+struct cypher;
 
 struct inject {
   int8_t *code;
@@ -22,6 +23,7 @@ void inject_find_and_replace(struct inject *inject, long old, long current);
 void inject_find_and_replace_32(struct inject *inject, uint32_t old,
                                 uint32_t current);
 void inject_set_exitpoint(struct inject *inject);
-void inject(struct xelf *xelf, struct inject *inject);
+int inject_cypher(struct xelf *xelf, Elf64_Phdr *code_segment,
+                  struct cypher *cypher);
 
 #endif

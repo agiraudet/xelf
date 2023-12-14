@@ -17,7 +17,7 @@ uint8_t *cypher_genkey(size_t len) {
   }
   size_t rb = 0;
   while (rb < len) {
-    size_t res = read(random_data, key + rb, len - rb);
+    int res = read(random_data, key + rb, len - rb);
     if (res < 0) {
       close(random_data);
       free(key);

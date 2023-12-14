@@ -1,7 +1,10 @@
 #include "inject.h"
 #include "cypher.h"
+#include "payload_dyn.h"
+#include "payload_exec.h"
 #include "xelf.h"
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +30,15 @@ int inject_load_from_file(struct inject *inject, const char *filepath) {
     return 4;
   }
   close(fd);
+  return 0;
+}
+
+int inject_load(struct inject *inject, unsigned char *opcode,
+                size_t opcode_len) {
+  if (!inject || !opcode)
+    return 1;
+  inject->size = opcode_len;
+  inject->code = (int8_t *)opcode;
   return 0;
 }
 
@@ -99,9 +111,9 @@ int inject_cypher(struct xelf *xelf, Elf64_Phdr *code_seg,
     return 1;
   // TODO check every return code
   if (xelf->header->e_type == ET_EXEC)
-    inject_load_from_file(&inject, "payload_exec");
+    inject_load(&inject, payload_exec, payload_exec_len);
   else if (xelf->header->e_type == ET_DYN)
-    inject_load_from_file(&inject, "payload_dyn");
+    inject_load(&inject, payload_dyn, payload_dyn_len);
   else
     return 2;
   inject_set_entrypoint(code_seg, &inject);

@@ -23,7 +23,7 @@ HDR_ASM		:=	$(SRCS_ASM:%.asm=$(INC_DIR)/%.h)
 
 INC_FLAGS	:=	$(addprefix -I, $(INC_DIR))
 
-CXXFLAGS	:=	-MD -Wall -Wextra -Werror $(INC_FLAGS)
+CXXFLAGS	:=	-MD -Wall -Wextra -Werror -g $(INC_FLAGS)
 
 CXX				:=	gcc
 

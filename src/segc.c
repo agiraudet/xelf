@@ -1,5 +1,5 @@
-#include "cypher.h"
 #include "segc.h"
+#include "cypher.h"
 #include "xelf.h"
 #include <stdio.h>
 #include <string.h>

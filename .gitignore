@@ -3,3 +3,9 @@ hello
 a.out
 packer.c
 test
+build
+hello.c
+hello
+inc/payload_dyn.h
+inc/payload_exec.h
+woody

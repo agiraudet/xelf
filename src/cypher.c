@@ -17,13 +17,14 @@ uint8_t *cypher_genkey(size_t len) {
   }
   size_t rb = 0;
   while (rb < len) {
-    int res = read(random_data, key + rb, len - rb);
+    int res = read(random_data, key + rb, 1);
     if (res < 0) {
       close(random_data);
       free(key);
       return 0;
     }
-    rb += res;
+    if (key[rb] != 0)
+      rb++;
   }
   close(random_data);
   return key;
@@ -33,9 +34,7 @@ void cypher_init(struct cypher *cypher) {
   if (!cypher)
     return;
   cypher->key_len = 16;
-  // TODO
-  /* cypher->key = cypher_genkey(cypher->key_len); */
-  cypher->key = (uint8_t *)strdup("0123456789ABCDEF");
+  cypher->key = cypher_genkey(cypher->key_len);
   cypher->len = 0;
   cypher->start = 0;
   cypher->addr = 0;
@@ -45,7 +44,7 @@ void cypher_printkey(struct cypher *cypher) {
   if (!cypher || !cypher->key)
     return;
   for (size_t i = 0; i < cypher->key_len; i++) {
-    printf("%X", cypher->key[i]);
+    printf("%02X ", cypher->key[i]);
   }
   printf("\n");
 }

@@ -58,13 +58,11 @@ void inject_patch_header(struct xelf *xelf, struct inject *inject) {
     return;
   inject->og_entry = xelf->header->e_entry;
 
-  if (xelf->header->e_type == ET_EXEC) {
+  if (xelf->header->e_type == ET_EXEC)
     xelf->header->e_entry = inject->addr;
-    printf("exec\n");
-  } else if (xelf->header->e_type == ET_DYN) {
+  else if (xelf->header->e_type == ET_DYN)
     xelf->header->e_entry = inject->offset;
-    printf("dyn\n");
-  } else
+  else
     fprintf(stderr, "elf is neither ET_EXEC nor ET_DYN\n");
 
   for (unsigned int i = 0; i < xelf->header->e_shnum; i++) {
@@ -86,6 +84,20 @@ void inject_find_and_replace(struct inject *inject, long old, long current) {
     if (!(old ^ current_QWORD)) {
       *((long *)(ptr + i)) = current;
       return;
+    }
+  }
+}
+
+void inject_key(struct inject *inject, struct cypher *cypher) {
+  uint8_t placeholder[] = "0123456789ABCDEF";
+  for (size_t i = 0; i < inject->size; i++) {
+    size_t j = 0;
+    while (inject->code[i + j] == placeholder[j]) {
+      if (placeholder[j + 1] == 0) {
+        memcpy(&inject->code[i], cypher->key, cypher->key_len);
+        return;
+      }
+      j++;
     }
   }
 }
@@ -124,7 +136,10 @@ int inject_cypher(struct xelf *xelf, Elf64_Phdr *code_seg,
   else if (xelf->header->e_type == ET_DYN)
     inject_find_and_replace(&inject, 0xCCCCCCCCCCCCCCCC, cypher->offset);
   inject_find_and_replace(&inject, 0xBBBBBBBBBBBBBBBB, cypher->len);
+
   // TODO FIND AND REPLACE KEY
+  inject_key(&inject, cypher);
+
   memcpy(xelf->elf + inject.offset, inject.code, inject.size);
   return 0;
 }

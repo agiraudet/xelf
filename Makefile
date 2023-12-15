@@ -1,4 +1,4 @@
-NAME			:=	woody
+NAME			:=	woody_woodpacker
 
 BUILD_DIR	:=	./build
 
@@ -57,6 +57,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 fclean: clean
+	rm -f woody
 	rm -f $(NAME)
 	rm -f $(HDR_ASM)
 

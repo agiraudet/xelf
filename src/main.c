@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
   }
   seg_set_flags(code_seg, (PF_R | PF_X | PF_W));
   inject_cypher(xelf, code_seg, cypher);
-  xelf_close(xelf);
+  xelf_close_write(xelf);
   // TODO clean memory leaks
   return 0;
 }

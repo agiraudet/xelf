@@ -18,6 +18,7 @@ struct xelf {
 
 int xelf_open(struct xelf *xelf, const char *path);
 int xelf_close(struct xelf *xelf);
+int xelf_close_write(struct xelf *xelf);
 struct xelf *xelf_create(const char *path);
 
 #endif

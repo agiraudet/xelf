@@ -18,7 +18,8 @@ int xelf_open(struct xelf *xelf, const char *path) {
   struct stat file_stat;
   fstat(fd, &file_stat);
   xelf->size = file_stat.st_size;
-  xelf->elf = mmap(0, xelf->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  // xelf->elf = mmap(0, xelf->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  xelf->elf = mmap(0, xelf->size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   close(fd);
   if (xelf->elf == MAP_FAILED)
     return 3;
@@ -36,6 +37,20 @@ int xelf_open(struct xelf *xelf, const char *path) {
 }
 
 int xelf_close(struct xelf *xelf) { return munmap(xelf->elf, xelf->size); }
+
+int xelf_close_write(struct xelf *xelf) {
+  int outputFile = open("woody", O_CREAT | O_WRONLY | O_TRUNC,
+                        S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH);
+  if (outputFile == -1) {
+    perror("Error creating output file");
+  } else {
+    if (write(outputFile, xelf->elf, xelf->size) < 0) {
+      fprintf(stderr, "Could not write output file");
+    }
+    close(outputFile);
+  }
+  return munmap(xelf->elf, xelf->size);
+}
 
 struct xelf *xelf_create(const char *path) {
   struct xelf *xelf;

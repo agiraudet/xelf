@@ -43,14 +43,6 @@ $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.c | $(BUILD_DIR) $(HDR_ASM)
 $(BUILD_DIR)/%: $(SRCS_DIR)/%.asm | $(BUILD_DIR)
 	$(AXX) $(AXXFLAGS) $< -o $@
 
-$(INC_DIR)/%.h: $(BUILD_DIR)/%
-	echo "#ifndef $(shell echo $$(basename $<) | tr '[:lower:]' '[:upper:]')_H" > $@
-	echo "#define $(shell echo $$(basename $<) | tr '[:lower:]' '[:upper:]')_H" >> $@
-	echo "" >> $@
-	xxd -i -n $$(basename $<) $< >> $@
-	echo "" >> $@
-	echo "#endif // $(shell echo $$(basename $<) | tr '[:lower:]' '[:upper:]')_H" >> $@
-
 all: $(NAME)
 
 clean:

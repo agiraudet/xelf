@@ -46,6 +46,10 @@ int xelf_open(struct xelf *xelf, const char *path) {
   xelf->sec_header_tab = (Elf64_Shdr *)(xelf->elf + xelf->header->e_shoff);
   xelf->prog_header_tab = (Elf64_Phdr *)(xelf->elf + xelf->header->e_phoff);
   xelf->sec_header_strtab = &xelf->sec_header_tab[xelf->header->e_shstrndx];
+  /* at [X] offsets specified by [e_shstrndx] added to sec_header_tab 
+   * we reach the table index of the section header  that contains the section name string table 
+   * it is easier to load the address directly in sec_header_strtab 
+   * avoiding complicated pointer arithmetics */
   return 0;
 }
 

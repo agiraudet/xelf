@@ -4,7 +4,10 @@ Wip Woody project
 
 ## Usage
 
+
 Compile with make
+
+'nasm -f bin' : no metadata, headers, or any other information that would be added by formats targeting specific operating systems or executable formats (like ELF for Unix/Linux or PE for Windows).
 
 ```
 ./woody <target_elf>
@@ -21,5 +24,6 @@ Compile with make
 ## Notes
 
 `grep -rni TODO` to see whats still need to be done.
+
 
 packer.c is the code from [this serie of medium articles](https://medium.com/analytics-vidhya/malware-engineering-part-0x2-finding-shelter-for-parasite-751145dd18d0)

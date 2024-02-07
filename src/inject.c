@@ -42,18 +42,28 @@ int inject_load(struct inject *inject, unsigned char *opcode,
   return 0;
 }
 
+/*[np]delimitation de la zone d'injection*/
 int inject_set_entrypoint(Elf64_Phdr *seg, struct inject *inject) {
   if (!seg || !inject)
     return -1;
-  inject->offset = seg->p_offset + seg->p_filesz;
-  inject->addr = seg->p_vaddr + seg->p_filesz;
-  seg->p_filesz += inject->size;
-  seg->p_memsz += inject->size;
+  /*[i]p_offset holds the offset from the beginning of the
+              file at which the first byte of the segment resides.*/
+  
+  /*[i]p_filesz holds the number of bytes in the file image of
+              the segment.  It may be zero. */
+
+  /*[i]p_vaddr the virtual address at which the first
+              byte of the segment resides in memory.*/
+  inject->offset = seg->p_offset + seg->p_filesz; // [np] That means payload_[x] will injected after
+  inject->addr = seg->p_vaddr + seg->p_filesz;   // after the segment.
+  seg->p_filesz += inject->size; // update size since we are going to add code 
+  seg->p_memsz += inject->size; //
   // TODO check that we dont overwrite the next segment !
   return 0;
 }
 
-void inject_patch_header(struct xelf *xelf, struct inject *inject) {
+void inject_patch_header(struct xelf *xelf, struct inject *inject)
+{
   if (!xelf || !inject)
     return;
   inject->og_entry = xelf->header->e_entry;
@@ -65,23 +75,37 @@ void inject_patch_header(struct xelf *xelf, struct inject *inject) {
   else
     fprintf(stderr, "elf is neither ET_EXEC nor ET_DYN\n");
 
-  for (unsigned int i = 0; i < xelf->header->e_shnum; i++) {
+  for (unsigned int i = 0; i < xelf->header->e_shnum; i++) 
+  {
+    /* [np] searching [Xth] section header
+     *  (xelf->sec_header_tab[th]) 
+     *  to modify its actual size 
+     *  so that it can allow/ match the injection*/
     Elf64_Shdr *sec = &xelf->sec_header_tab[i];
     Elf64_Off sec_end = sec->sh_offset + sec->sh_size;
-    if (inject->offset == sec_end) {
-      sec->sh_size += inject->size;
+    if (inject->offset == sec_end) 
+    {
+      sec->sh_size += inject->size; // updating properly xelf->sec_header_tab[i]
       return;
     }
   }
 }
 
-void inject_find_and_replace(struct inject *inject, long old, long current) {
+void inject_find_and_replace(struct inject *inject, long old, long current)
+{
   if (!inject)
     return;
   uint8_t *ptr = (uint8_t *)inject->code;
-  for (unsigned int i = 0; i < inject->size; i++) {
+  /*[np] iteration on code [the bin payload] inside inject->code 
+   * in inject_load()*/
+	/* altering the offsets */
+  	/* setting the OG offset, to our payload's offset
+	 * so that the entrypoint will our payload */
+  for (unsigned int i = 0; i < inject->size; i++) 
+  {
     long current_QWORD = *((long *)(ptr + i));
-    if (!(old ^ current_QWORD)) {
+    if (!(old ^ current_QWORD)) 
+    {
       *((long *)(ptr + i)) = current;
       return;
     }
@@ -110,8 +134,8 @@ void inject_set_exitpoint(struct inject *inject) {
   for (unsigned int i = 0; i < inject->size; i++) {
     long current_QWORD = *((long *)(ptr + i));
     if (!(replace ^ current_QWORD)) {
-      *((long *)(ptr + i)) = inject->og_entry;
-      return;
+      *((long *)(ptr + i)) = inject->og_entry;  // settting exit point to OG entry
+      return; 	                               // so that we transfer code flow to the packed parasite
     }
   }
 }
@@ -135,11 +159,11 @@ int inject_cypher(struct xelf *xelf, Elf64_Phdr *code_seg,
     inject_find_and_replace(&inject, 0xCCCCCCCCCCCCCCCC, cypher->addr);
   else if (xelf->header->e_type == ET_DYN)
     inject_find_and_replace(&inject, 0xCCCCCCCCCCCCCCCC, cypher->offset);
-  inject_find_and_replace(&inject, 0xBBBBBBBBBBBBBBBB, cypher->len);
+  inject_find_and_replace(&inject, 0xBBBBBBBBBBBBBBBB, cypher->len); // for the counter loop in our ASM code 
 
   // TODO FIND AND REPLACE KEY
-  inject_key(&inject, cypher);
+  inject_key(&inject, cypher); // for the 'key' label in our ASM code 
 
-  memcpy(xelf->elf + inject.offset, inject.code, inject.size);
+  memcpy(xelf->elf + inject.offset, inject.code, inject.size); // payload loaded lol 
   return 0;
 }

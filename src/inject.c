@@ -67,6 +67,7 @@ void inject_patch_header(struct xelf *xelf, struct inject *inject)
   if (!xelf || !inject)
     return;
   inject->og_entry = xelf->header->e_entry;
+ char *sec_names = (char *)(xelf->elf + xelf->sec_header_strtab->sh_offset);
 
   if (xelf->header->e_type == ET_EXEC)
     xelf->header->e_entry = inject->addr;
@@ -85,6 +86,9 @@ void inject_patch_header(struct xelf *xelf, struct inject *inject)
     Elf64_Off sec_end = sec->sh_offset + sec->sh_size;
     if (inject->offset == sec_end) 
     {
+	    char *sec_name = &sec_names[xelf->sec_header_tab[i].sh_name];
+	if (sec_name)
+		printf("youpi");
       sec->sh_size += inject->size; // updating properly xelf->sec_header_tab[i]
       return;
     }

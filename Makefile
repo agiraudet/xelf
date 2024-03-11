@@ -19,7 +19,6 @@ OBJS			:=	$(SRCS:%.c=$(BUILD_DIR)/%.o)
 
 OBJS_ASM	:=	$(SRCS_ASM:%.asm=$(BUILD_DIR)/%)
 
-HDR_ASM		:=	$(SRCS_ASM:%.asm=$(INC_DIR)/%.h)
 
 INC_FLAGS	:=	$(addprefix -I, $(INC_DIR))
 
@@ -51,7 +50,6 @@ clean:
 fclean: clean
 	rm -f woody
 	rm -f $(NAME)
-	rm -f $(HDR_ASM)
 
 re: fclean all
 

@@ -64,7 +64,7 @@ print_woody:
   xor rdi, rdi
   xor rbx, rbx
   mov dil, al
-  sub sp, 0x20                ; 16 bytes, size of procpath
+  sub sp, 0x20                ; allocating 16 bytes, size of procpath
 
   lea rsi, [rsp]              ; *buf
   xor rdx, rdx

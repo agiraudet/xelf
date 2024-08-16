@@ -158,7 +158,7 @@ Elf64_Phdr *xelf_find_cave(t_xelf *xelf, size_t payload_size) {
     if (phdr->p_type == PT_LOAD &&
         (phdr->p_flags & (PF_R | PF_X)) == (PF_R | PF_X)) {
       size_t cave_size =
-          (xelf->phdr + i + 1)->p_offset - phdr->p_offset + phdr->p_filesz;
+          (xelf->phdr + i + 1)->p_offset - (phdr->p_offset + phdr->p_filesz);
       if (cave_size >= payload_size) {
         return phdr;
       }
@@ -327,15 +327,10 @@ int xelf_extend(t_xelf *xelf, const char *outfile) {
 int xelf_inject(t_xelf *xelf, const char *outfile, t_payload *payload) {
   Elf64_Phdr *cave = xelf_find_cave(xelf, payload->size);
   if (!cave) {
-    printf("[DEBUG] Cave not found, extending the fike...\n");
-    if (xelf_extend(xelf, outfile) != XELF_SUCCESS)
-      return xelf_errorcode(0);
-    cave = xelf_find_cave(xelf, payload->size);
-    if (!cave) {
-      printf("[DEBUG] Cave still not found\n");
-      return xelf_errorcode(XELF_PAYLOADSIZE);
-    }
+    printf("[DEBUG] Cave not found, trying to hijack...\n");
+    return (xelf_hijack(xelf, outfile, payload) != XELF_SUCCESS);
   }
+  printf("[DEBUG] Cave found at 0x%lx, injecting!\n", cave->p_vaddr);
   payload_set_placeholder_value(payload, "entrypoint", xelf->ehdr->e_entry);
   payload_replace_placeholders(payload);
   if (xelf->ehdr->e_type == ET_EXEC)

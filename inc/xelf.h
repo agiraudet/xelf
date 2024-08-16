@@ -5,7 +5,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct payload t_payload;
+
 enum e_xelf_error {
+  XELF_CODERESET = -1,
   XELF_SUCCESS = 0,
   XELF_NULLPTR = 1,
   XELF_OPEN = 2,
@@ -19,7 +22,8 @@ enum e_xelf_error {
   XELF_ELFEXEC = 10,
   XELF_NOPHDR = 11,
   XELF_NOSHDR = 12,
-  XELF_PAYLOADSIZE = 13
+  XELF_PAYLOADSIZE = 13,
+  XELF_PLACEHOLDER = 14
 };
 
 typedef struct xelf {
@@ -31,20 +35,14 @@ typedef struct xelf {
   size_t size;
 } t_xelf;
 
-typedef uint64_t t_placeholder;
-
-typedef struct payload {
-  uint8_t *data;
-  size_t size;
-  t_placeholder entrypoint;
-  t_placeholder key_addr;
-  t_placeholder key_size;
-  t_placeholder key;
-} t_payload;
-
+int xelf_error(void);
+int xelf_errorcode(int set);
 int xelf_open(t_xelf *xelf, const char *path);
 int xelf_close(t_xelf *xelf);
-int xelf_close_write(t_xelf *xelf);
+int xelf_check(t_xelf *xelf);
 t_xelf *xelf_create(const char *path);
+void xelf_destroy(t_xelf *xelf);
+int xelf_hijack(t_xelf *xelf, const char *outfile, t_payload *payload);
+int xelf_inject(t_xelf *xelf, const char *outfile, t_payload *payload);
 
 #endif

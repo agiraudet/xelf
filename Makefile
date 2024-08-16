@@ -1,27 +1,28 @@
-NAME			:=	woody_woodpacker
+NAME			:=	xelf
 
-BUILD_DIR	:=	./build
+HELLO			:= hello
 
-INC_DIR		:=	./inc
+BUILD_DIR	:=	build
 
-SRCS_DIR	:=	./src
+INC_DIR		:=	inc
 
-SRCS			:=	main.c \
-							cypher.c \
-							inject.c \
-							segc.c \
-							xelf.c
+SRCS_DIR	:=	src
 
-SRCS_ASM	:=	payload_dyn.asm \
-							payload_exec.asm
+PLD_DIR		:=	$(SRCS_DIR)/payloads
+
+SRCS			:=	xelf.c \
+							payload.c \
+							main.c
+
+PLD_SRCS	:=	$(wildcard $(PLD_DIR)/*.asm)
 
 OBJS			:=	$(SRCS:%.c=$(BUILD_DIR)/%.o)
 
-OBJS_ASM	:=	$(SRCS_ASM:%.asm=$(BUILD_DIR)/%)
+OBJS_ASM	:=	$(PLD_SRCS:%.asm=$(BUILD_DIR)/%)
 
-HDR_ASM		:=	$(SRCS_ASM:%.asm=$(INC_DIR)/%.h)
+HDR_ASM		:=	$(PLD_SRCS:$(PLD_DIR)/%.asm=$(INC_DIR)/payloads/%.h)
 
-INC_FLAGS	:=	$(addprefix -I, $(INC_DIR))
+INC_FLAGS	:=	$(addprefix -I, $(INC_DIR)) $(addprefix -I, $(INC_DIR)/payloads)
 
 CXXFLAGS	:=	-MD -Wall -Wextra -Werror -g $(INC_FLAGS)
 
@@ -32,7 +33,7 @@ AXXFLAGS	:=	-f bin
 AXX				:=	nasm
 
 $(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) $(DEPS) -o $@
+	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -40,10 +41,10 @@ $(BUILD_DIR):
 $(BUILD_DIR)/%.o: $(SRCS_DIR)/%.c | $(BUILD_DIR) $(HDR_ASM)
 	$(CXX) $(CXXFLAGS) -c $< -o $@ 
 
-$(BUILD_DIR)/%: $(SRCS_DIR)/%.asm | $(BUILD_DIR)
+$(BUILD_DIR)/%: $(PLD_DIR)/%.asm | $(BUILD_DIR)
 	$(AXX) $(AXXFLAGS) $< -o $@
 
-$(INC_DIR)/%.h: $(BUILD_DIR)/%
+$(INC_DIR)/payloads/%.h: $(BUILD_DIR)/%
 	echo "#ifndef $(shell echo $$(basename $<) | tr '[:lower:]' '[:upper:]')_H" > $@
 	echo "#define $(shell echo $$(basename $<) | tr '[:lower:]' '[:upper:]')_H" >> $@
 	echo "" >> $@
@@ -51,15 +52,19 @@ $(INC_DIR)/%.h: $(BUILD_DIR)/%
 	echo "" >> $@
 	echo "#endif // $(shell echo $$(basename $<) | tr '[:lower:]' '[:upper:]')_H" >> $@
 
+$(HELLO):
+	echo -e '#include <unistd.h>\nint main(){write(1,"Hello World!\\n",13);return 0;}' | $(CXX) -xc - -o $(HELLO)
+
+
 all: $(NAME)
 
 clean:
 	rm -rf $(BUILD_DIR)
 
 fclean: clean
-	rm -f woody
 	rm -f $(NAME)
 	rm -f $(HDR_ASM)
+	rm -f $(HELLO)
 
 re: fclean all
 

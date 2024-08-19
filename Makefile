@@ -10,7 +10,8 @@ SRCS_DIR	:=	src
 
 PLD_DIR		:=	$(SRCS_DIR)/payloads
 
-SRCS			:=	xelf.c \
+SRCS			:=	clarg.c \
+							xelf.c \
 							payload.c \
 							main.c
 
@@ -32,7 +33,7 @@ AXXFLAGS	:=	-f bin
 
 AXX				:=	nasm
 
-$(NAME): $(OBJS)
+$(NAME): $(OBJS) $(HDR_ASM)
 	$(CXX) $(CXXFLAGS) $(OBJS) -o $@
 
 $(BUILD_DIR):
@@ -60,11 +61,13 @@ all: $(NAME)
 
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -f hello.c
 
 fclean: clean
 	rm -f $(NAME)
 	rm -f $(HDR_ASM)
 	rm -f $(HELLO)
+	rm -f woody
 
 re: fclean all
 

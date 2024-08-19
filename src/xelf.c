@@ -1,4 +1,5 @@
 #include "xelf.h"
+#include "clarg.h"
 #include "payload.h"
 #include <elf.h>
 #include <fcntl.h>
@@ -269,7 +270,7 @@ Elf64_Shdr *xelf_shdr_hijack_update(t_xelf *xelf, Elf64_Shdr *hijacked_shdr,
   return hijacked_shdr;
 }
 
-int xelf_phdr_hijack(t_xelf *xelf, Elf64_Phdr *hijacked_phdr) {
+int xelf_phdr_hijack(t_xelf *xelf, Elf64_Phdr *hijacked_phdr, size_t new_size) {
   if (!xelf || !hijacked_phdr)
     return xelf_errorcode(XELF_NULLPTR);
   Elf64_Addr new_addr = (xelf_vaddr_last(xelf) + 0xFFF) & ~0xFFF;
@@ -277,15 +278,15 @@ int xelf_phdr_hijack(t_xelf *xelf, Elf64_Phdr *hijacked_phdr) {
   Elf64_Shdr *hijacked_shdr = xelf_shdr_from_phdr(xelf, hijacked_phdr);
   if (!hijacked_shdr)
     return xelf_errorcode(XELF_NOSHDR);
-  xelf_shdr_hijack_update(xelf, hijacked_shdr, PAGE_SIZE, new_offset, new_addr);
+  xelf_shdr_hijack_update(xelf, hijacked_shdr, new_size, new_offset, new_addr);
   hijacked_phdr->p_type = PT_LOAD;
   hijacked_phdr->p_flags = PF_X | PF_R | PF_W;
-  hijacked_phdr->p_filesz = PAGE_SIZE;
-  hijacked_phdr->p_memsz = PAGE_SIZE;
+  hijacked_phdr->p_filesz = new_size;
+  hijacked_phdr->p_memsz = new_size;
   hijacked_phdr->p_offset = new_offset;
   hijacked_phdr->p_vaddr = new_addr;
   hijacked_phdr->p_paddr = new_addr;
-  hijacked_phdr->p_align = PAGE_SIZE;
+  hijacked_phdr->p_align = 0x1;
   return XELF_SUCCESS;
 }
 
@@ -297,13 +298,13 @@ int xelf_hijack(t_xelf *xelf, const char *outfile, t_payload *payload) {
   Elf64_Phdr *hijacked_phdr = xelf_phdr_from_type(xelf, PT_NOTE);
   if (!hijacked_phdr)
     return xelf_errorcode(XELF_NOPHDR);
-  if (xelf_phdr_hijack(xelf, hijacked_phdr) != XELF_SUCCESS)
+  if (xelf_phdr_hijack(xelf, hijacked_phdr, payload->size) != XELF_SUCCESS)
     return xelf_errorcode(0);
   payload_set_placeholder_value(payload, "entrypoint", xelf->ehdr->e_entry);
   payload_replace_placeholders(payload);
   xelf->ehdr->e_entry = hijacked_phdr->p_vaddr;
   if (xelf_hijack_write(xelf, outfile, hijacked_phdr->p_offset, payload,
-                        PAGE_SIZE) != XELF_SUCCESS)
+                        payload->size) != XELF_SUCCESS)
     return xelf_errorcode(0);
   xelf_close(xelf);
   return xelf_open(xelf, outfile);
@@ -315,7 +316,7 @@ int xelf_extend(t_xelf *xelf, const char *outfile) {
   Elf64_Phdr *hijacked_phdr = xelf_phdr_from_type(xelf, PT_NOTE);
   if (!hijacked_phdr)
     return xelf_errorcode(XELF_NOPHDR);
-  if (!xelf_phdr_hijack(xelf, hijacked_phdr))
+  if (!xelf_phdr_hijack(xelf, hijacked_phdr, PAGE_SIZE))
     return xelf_errorcode(0);
   if (xelf_hijack_write(xelf, outfile, hijacked_phdr->p_offset, NULL,
                         PAGE_SIZE) != XELF_SUCCESS)
@@ -327,10 +328,14 @@ int xelf_extend(t_xelf *xelf, const char *outfile) {
 int xelf_inject(t_xelf *xelf, const char *outfile, t_payload *payload) {
   Elf64_Phdr *cave = xelf_find_cave(xelf, payload->size);
   if (!cave) {
-    printf("[DEBUG] Cave not found, trying to hijack...\n");
+    if (cla_provided('v'))
+      printf("No cave big enough in the original file\n");
+    if (cla_provided('c'))
+      return 0;
     return (xelf_hijack(xelf, outfile, payload) != XELF_SUCCESS);
   }
-  printf("[DEBUG] Cave found at 0x%lx, injecting!\n", cave->p_vaddr);
+  if (cla_provided('v'))
+    printf("Cave found at 0x%lx\n", cave->p_vaddr);
   payload_set_placeholder_value(payload, "entrypoint", xelf->ehdr->e_entry);
   payload_replace_placeholders(payload);
   if (xelf->ehdr->e_type == ET_EXEC)

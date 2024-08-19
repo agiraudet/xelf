@@ -16,7 +16,6 @@ _start:
 
 	
 	jmp	whereami
-	message:	db	"...WOODY...", 0xa
   procpath: db "/proc/self/maps", 0x0
 
 ; TODO: this following section find the original entry point. It should do it at the beginning not the end, and use the same base to find the real adress of the cypher text (by adding it to 0xCCCCCCCCCCCCCCCC, similary to what is done with 0xAAAAAAAAAAAAAAAA)
@@ -80,29 +79,3 @@ done:
   mov r8, rbx
   mov r10, 0xAAAAAAAAAAAAAAAA
   add r8, r10
-; ET_DYN routine end
-
-; Print our message
-parasite:
-	xor	rax, rax					; Zero out RAX
-	add	rax, 0x1					; Syscall number of write() - 0x1
-	mov rdi, rax					; File descriptor - 0x1 (STDOUT)
-	lea rsi, [rel message]			; Addresses the label relative to RIP (Instruction Pointer), i.e. 
-									; dynamically identifying the address of the 'message' label.
-	xor rdx, rdx
-	mov dl, 0xC					; message size = 57 bytes (0x39)
-	syscall					
-
-
-
-end:
-	; Restoring register state
-	pop r11
-	pop rdi
-	pop rsi
-	pop rdx
-	pop rcx
-	pop rax
-	
-	; mov	rbx, 0xAAAAAAAAAAAAAAAA		
-	jmp	r8 ; now we jump to r8 which hold (address_of_begining_of_program + 0xAAAAAAAAAAAAAAAA) where 0xAAAAAAAAAAAAAAAA is the original entry point which is an offset

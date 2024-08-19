@@ -23,7 +23,8 @@ enum e_xelf_error {
   XELF_NOPHDR = 11,
   XELF_NOSHDR = 12,
   XELF_PAYLOADSIZE = 13,
-  XELF_PLACEHOLDER = 14
+  XELF_PLACEHOLDER = 14,
+  XELF_PAYLOAD = 15
 };
 
 typedef struct xelf {

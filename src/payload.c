@@ -1,8 +1,14 @@
 #include "payload.h"
+#include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
+#include "entry_dynamic.h"
+#include "entry_static.h"
+#include "exit_dynamic.h"
+#include "exit_static.h"
 #include "xelf.h"
 
 void placeholder_init(t_placeholder *placeholder, uint64_t key, uint64_t value,
@@ -43,20 +49,47 @@ int payload_add_placeholder(t_payload *payload, t_placeholder *placeholder) {
   return XELF_SUCCESS;
 }
 
-t_payload *payload_create(uint8_t *data, size_t size) {
+t_payload *payload_create(uint8_t *data, size_t size, uint16_t e_type) {
+  if (!data || size == 0) {
+    xelf_errorcode(XELF_NULLPTR);
+    return NULL;
+  }
   t_payload *payload = malloc(sizeof(t_payload));
   if (!payload) {
     xelf_errorcode(XELF_MALLOC);
     return NULL;
   }
+  uint8_t *entry_data = NULL;
+  uint8_t *exit_data = NULL;
+  size_t entry_size = 0;
+  size_t exit_size = 0;
+  if (e_type == ET_EXEC) {
+    entry_data = entry_static;
+    entry_size = entry_static_len;
+    exit_data = exit_static;
+    exit_size = exit_static_len;
+  } else if (e_type == ET_DYN) {
+    entry_data = entry_dynamic;
+    entry_size = entry_dynamic_len;
+    exit_data = exit_dynamic;
+    exit_size = exit_dynamic_len;
+  }
+  payload->size = entry_size + size + exit_size;
+  payload->data = malloc(payload->size);
+  if (!payload->data) {
+    free(payload);
+    xelf_errorcode(XELF_MALLOC);
+    return NULL;
+  }
+  memcpy(payload->data, entry_data, entry_size);
+  memcpy(payload->data + entry_size, data, size);
+  memcpy(payload->data + entry_size + size, exit_data, exit_size);
   payload->placeholders = malloc(sizeof(t_placeholder));
   if (!payload->placeholders) {
     xelf_errorcode(XELF_MALLOC);
     free(payload);
     return NULL;
   }
-  payload->data = data;
-  payload->size = size;
   payload->n_placeholders = 1;
   payload->cap_placeholders = 1;
   payload->placeholders[0].key = 0;
@@ -65,9 +98,39 @@ t_payload *payload_create(uint8_t *data, size_t size) {
   return payload;
 }
 
+t_payload *payload_create_from_file(const char *filename, uint16_t e_type) {
+  int fd = open(filename, O_RDONLY);
+  if (fd < 0) {
+    xelf_errorcode(XELF_OPEN);
+    return NULL;
+  }
+  size_t size = lseek(fd, 0, SEEK_END);
+  if (size == 0) {
+    close(fd);
+    xelf_errorcode(XELF_PAYLOAD);
+    return NULL;
+  }
+  lseek(fd, 0, SEEK_SET);
+  uint8_t *data = malloc(size);
+  if (!data) {
+    close(fd);
+    xelf_errorcode(XELF_MALLOC);
+    return NULL;
+  }
+  if (read(fd, data, size) < 0) {
+    close(fd);
+    free(data);
+    xelf_errorcode(XELF_PAYLOAD);
+    return NULL;
+  }
+  return payload_create(data, size, e_type);
+}
+
 void payload_destroy(t_payload *payload) {
   if (!payload)
     return;
+  if (payload->data)
+    free(payload->data);
   for (unsigned int i = 0; i < payload->n_placeholders; i++)
     placeholder_destroy(payload->placeholders + i);
   free(payload->placeholders);

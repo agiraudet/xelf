@@ -76,8 +76,8 @@ int cypher_encrypt_shdr(t_xelf *xelf, t_cypher *cypher, Elf64_Shdr *shdr,
   if (cla_provided('v')) {
     printf("Encrypted section %s\n", xelf_shdr_name(xelf, shdr));
     printf("\taddress: 0x%lx\n", cypher->addr);
-    printf("\tsize: %lu\n", cypher->len);
-    printf("\toffset: %lu\n", cypher->offset);
+    printf("\tsize: %lx\n", cypher->len);
+    printf("\toffset: %lx\n", cypher->offset);
   }
   return 0;
 }

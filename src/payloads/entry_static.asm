@@ -12,3 +12,4 @@ _start:
 	push rsi
 	push rdi
 	push r11
+  mov r11, 0x0

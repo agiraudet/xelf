@@ -12,6 +12,9 @@ _start:
 	push rdx
 	push rsi
 	push rdi
+  push r8
+  push r9
+  push r10
 	push r11
 
 	
@@ -73,9 +76,14 @@ loop:
   jmp read_char
 
 done:
-  sub sp, r10w  ;sub stack pointer by num of char (which are pushed on the stack)
+  sub sp, r10w  ;sub stack pointer by num of char (which are pu5hed on the stack)
   add sp, 0x20
   xor r8, r8
   mov r8, rbx
-  mov r10, 0xAAAAAAAAAAAAAAAA
-  add r8, r10
+  ;mov r10, 0xAAAAAAAAAAAAAAAA
+  ;add r8, r10
+  mov r9, r8
+  mov rbx, r8
+  mov r11, 0x1
+  push rbx
+

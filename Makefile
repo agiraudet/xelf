@@ -26,7 +26,7 @@ HDR_ASM		:=	$(PLD_SRCS:$(PLD_DIR)/%.asm=$(INC_DIR)/payloads/%.h)
 
 INC_FLAGS	:=	$(addprefix -I, $(INC_DIR)) $(addprefix -I, $(INC_DIR)/payloads)
 
-CXXFLAGS	:=	-MD -Wall -Wextra -Werror -g $(INC_FLAGS)
+CXXFLAGS	:=	-MD -Wall -Wextra -g $(INC_FLAGS)
 
 CXX				:=	gcc
 
@@ -68,7 +68,6 @@ clean:
 
 fclean: clean
 	rm -f $(NAME)
-	rm -f $(HDR_ASM)
 	rm -f $(HELLO)
 	rm -f woody
 

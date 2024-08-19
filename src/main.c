@@ -2,6 +2,7 @@
 #include "cypher.h"
 #include "hello.h"
 #include "payload.h"
+#include "test.h"
 #include "xelf.h"
 #include "xor.h"
 #include <stdio.h>
@@ -32,6 +33,7 @@ void cla_compose(void) {
 }
 
 t_payload *load_payload(t_xelf *xelf) {
+  // return payload_create(test, test_len, xelf->ehdr->e_type);
   if (!cla_provided('p')) {
     if (cla_provided('x')) {
       if (cla_provided('v'))
@@ -84,12 +86,18 @@ int main(int argc, char **argv) {
     payload_set_placeholder_key(payload, "code_addr", 0xCCCCCCCCCCCCCCCC);
     if (xelf->ehdr->e_type == ET_EXEC)
       payload_set_placeholder_value(payload, "code_addr", cypher->addr);
-    else
+    else {
       payload_set_placeholder_value(payload, "code_addr", cypher->offset);
+      payload_set_placeholder_key(payload, "is_dyn", 0xDDDDDDDDDDDDDDDD);
+      payload_set_placeholder_value(payload, "is_dyn", 0x1);
+    }
   }
   if (payload_set_placeholder_key(payload, "entrypoint", 0xAAAAAAAAAAAAAAAA) !=
       XELF_SUCCESS)
     return cleanup(xelf, payload);
+  for (size_t i = 0; i < payload->size; i++)
+    printf("%x", payload->data[i]);
+  printf("\n");
   if (xelf_inject(xelf, cla_provided('o') ? cla_value('o') : "woody",
                   payload) != XELF_SUCCESS)
     return cleanup(xelf, payload);

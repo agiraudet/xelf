@@ -1,6 +1,8 @@
 #include "payload.h"
+#include "clarg.h"
 #include <fcntl.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -64,15 +66,26 @@ t_payload *payload_create(uint8_t *data, size_t size, uint16_t e_type) {
   size_t entry_size = 0;
   size_t exit_size = 0;
   if (e_type == ET_EXEC) {
+    if (cla_provided('v'))
+      printf("Creating payload for ET_EXEC\n");
     entry_data = entry_static;
     entry_size = entry_static_len;
     exit_data = exit_static;
     exit_size = exit_static_len;
   } else if (e_type == ET_DYN) {
+    if (cla_provided('v'))
+      printf("Creating payload for ET_DYN\n");
     entry_data = entry_dynamic;
     entry_size = entry_dynamic_len;
     exit_data = exit_dynamic;
     exit_size = exit_dynamic_len;
+  } else {
+    if (cla_provided('v'))
+      printf("Creating payload for ???\n");
+    entry_data = 0;
+    entry_size = 0;
+    exit_data = 0;
+    exit_size = 0;
   }
   payload->size = entry_size + size + exit_size;
   payload->data = malloc(payload->size);
@@ -145,7 +158,9 @@ int payload_replace_placeholder(t_payload *payload, uint64_t key,
     long current_QWORD = *((long *)(payload->data + i));
     if (!(key ^ current_QWORD)) {
       *((long *)(payload->data + i)) = value;
-      return XELF_SUCCESS;
+      if (cla_provided('v'))
+        printf("Replaced %lX -> %lX\n", key, value);
+      // return XELF_SUCCESS;
     }
   }
   return xelf_errorcode(XELF_PLACEHOLDER);

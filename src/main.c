@@ -1,7 +1,9 @@
 #include "clarg.h"
+#include "cypher.h"
 #include "hello.h"
 #include "payload.h"
 #include "xelf.h"
+#include "xor.h"
 #include <stdio.h>
 
 int cleanup(t_xelf *xelf, t_payload *payload) {
@@ -26,10 +28,16 @@ void cla_compose(void) {
   clarg_add_allowed_value(e, "xor");
   clarg_add_allowed_value(e, "aes");
   cla_arg('c', "cave", "Allow code caving only");
+  cla_arg('s', "section", "Extend section size in header to fit payload");
 }
 
 t_payload *load_payload(t_xelf *xelf) {
   if (!cla_provided('p')) {
+    if (cla_provided('x')) {
+      if (cla_provided('v'))
+        printf("No payload provided, using default XOR\n");
+      return payload_create(xor, xor_len, xelf->ehdr->e_type);
+    }
     if (cla_provided('v'))
       printf("No payload provided, using default\n");
     return payload_create(hello, hello_len, xelf->ehdr->e_type);
@@ -37,6 +45,15 @@ t_payload *load_payload(t_xelf *xelf) {
   if (cla_provided('v'))
     printf("Loading payload from file %s\n", cla_value('p'));
   return payload_create_from_file(cla_value('p'), xelf->ehdr->e_type);
+}
+
+t_cypher *load_cypher(void) {
+  t_cypher *cypher = cypher_create(16);
+  if (!cypher)
+    return NULL;
+  if (cla_provided('v'))
+    cypher_printkey(cypher);
+  return cypher;
 }
 
 int main(int argc, char **argv) {
@@ -56,6 +73,20 @@ int main(int argc, char **argv) {
   t_payload *payload = load_payload(xelf);
   if (!payload)
     return cleanup(xelf, NULL);
+  if (cla_provided('x')) {
+    t_cypher *cypher = load_cypher();
+    if (!cypher)
+      return cleanup(xelf, payload);
+    cypher_encrypt_shdr(xelf, cypher, xelf_shdr_from_name(xelf, ".text"),
+                        cypher_xor);
+    payload_set_placeholder_key(payload, "code_len", 0xBBBBBBBBBBBBBBBB);
+    payload_set_placeholder_value(payload, "code_len", cypher->len);
+    payload_set_placeholder_key(payload, "code_addr", 0xCCCCCCCCCCCCCCCC);
+    if (xelf->ehdr->e_type == ET_EXEC)
+      payload_set_placeholder_value(payload, "code_addr", cypher->addr);
+    else
+      payload_set_placeholder_value(payload, "code_addr", cypher->offset);
+  }
   if (payload_set_placeholder_key(payload, "entrypoint", 0xAAAAAAAAAAAAAAAA) !=
       XELF_SUCCESS)
     return cleanup(xelf, payload);

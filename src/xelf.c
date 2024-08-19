@@ -112,6 +112,17 @@ Elf64_Shdr *xelf_shdr_from_phdr(t_xelf *xelf, Elf64_Phdr *phdr) {
   return NULL;
 }
 
+Elf64_Phdr *xelf_phdr_from_shdr(t_xelf *xelf, Elf64_Shdr *shdr) {
+  if (!xelf)
+    return NULL;
+  for (size_t i = 0; i < xelf->ehdr->e_phnum; i++) {
+    if (xelf->phdr[i].p_vaddr < shdr->sh_addr &&
+        xelf->phdr[i].p_vaddr + xelf->phdr[i].p_memsz >= shdr->sh_addr)
+      return xelf->phdr + i;
+  }
+  return NULL;
+}
+
 char *xelf_shdr_name(t_xelf *xelf, Elf64_Shdr *shdr) {
   if (!xelf || !shdr)
     return NULL;
@@ -303,6 +314,8 @@ int xelf_hijack(t_xelf *xelf, const char *outfile, t_payload *payload) {
   payload_set_placeholder_value(payload, "entrypoint", xelf->ehdr->e_entry);
   payload_replace_placeholders(payload);
   xelf->ehdr->e_entry = hijacked_phdr->p_vaddr;
+  if (cla_provided('s'))
+    xelf_shdr_from_phdr(xelf, hijacked_phdr)->sh_size += payload->size;
   if (xelf_hijack_write(xelf, outfile, hijacked_phdr->p_offset, payload,
                         payload->size) != XELF_SUCCESS)
     return xelf_errorcode(0);
@@ -342,6 +355,8 @@ int xelf_inject(t_xelf *xelf, const char *outfile, t_payload *payload) {
     xelf->ehdr->e_entry = cave->p_vaddr + cave->p_filesz;
   else if (xelf->ehdr->e_type == ET_DYN)
     xelf->ehdr->e_entry = cave->p_offset + cave->p_filesz;
+  if (cla_provided('s'))
+    xelf_shdr_from_phdr(xelf, cave)->sh_size += payload->size;
   if (xelf_inject_write(xelf, outfile, cave->p_offset + cave->p_filesz,
                         payload) != XELF_SUCCESS)
     return xelf_errorcode(0);
@@ -392,6 +407,9 @@ int xelf_error(void) {
     break;
   case XELF_PLACEHOLDER:
     fprintf(stderr, "Error: placeholder not found\n");
+    break;
+  case XELF_PAYLOAD:
+    fprintf(stderr, "Error: payload not found\n");
     break;
   default:
     fprintf(stderr, "Error: unknown error: %d\n", code);

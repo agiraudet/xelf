@@ -45,5 +45,13 @@ t_xelf *xelf_create(const char *path);
 void xelf_destroy(t_xelf *xelf);
 int xelf_hijack(t_xelf *xelf, const char *outfile, t_payload *payload);
 int xelf_inject(t_xelf *xelf, const char *outfile, t_payload *payload);
+Elf64_Shdr *xelf_shdr_from_name(t_xelf *xelf, const char *name);
+Elf64_Shdr *xelf_shdr_from_phdr(t_xelf *xelf, Elf64_Phdr *phdr);
+Elf64_Phdr *xelf_phdr_from_shdr(t_xelf *xelf, Elf64_Shdr *shdr);
+char *xelf_shdr_name(t_xelf *xelf, Elf64_Shdr *shdr);
+Elf64_Phdr *xelf_phdr_from_type(t_xelf *xelf, uint32_t p_type);
+Elf64_Phdr *xelf_phdr_biggest(t_xelf *xelf);
+Elf64_Phdr *xelf_phdr_from_characteristics(t_xelf *xelf, uint32_t type,
+                                           uint32_t flags);
 
 #endif

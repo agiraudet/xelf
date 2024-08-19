@@ -11,6 +11,7 @@ SRCS_DIR	:=	src
 PLD_DIR		:=	$(SRCS_DIR)/payloads
 
 SRCS			:=	clarg.c \
+							cypher.c \
 							xelf.c \
 							payload.c \
 							main.c
@@ -58,6 +59,8 @@ $(HELLO):
 
 
 all: $(NAME)
+
+stubs: $(HDR_ASM)
 
 clean:
 	rm -rf $(BUILD_DIR)

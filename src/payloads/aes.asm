@@ -2,7 +2,7 @@ BITS 64
 section .text
 	jmp	print_woody
   key: db 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x00
-	message:	db	"...WOODY...", 0xa
+	message:	db	"...DUMMY...", 0xa
 
 print_woody:
 	xor	rax, rax					; Zero out RAX
@@ -24,7 +24,6 @@ set_dyn_address:
   jmp decrypt_init
 
 set_exec_address:
-  push r11
   mov rsi, 0xCCCCCCCCCCCCCCCC   ; Load the address of the ciphertext
 
 decrypt_init:

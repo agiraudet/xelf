@@ -297,7 +297,7 @@ int xelf_phdr_hijack(t_xelf *xelf, Elf64_Phdr *hijacked_phdr, size_t new_size) {
   hijacked_phdr->p_offset = new_offset;
   hijacked_phdr->p_vaddr = new_addr;
   hijacked_phdr->p_paddr = new_addr;
-  hijacked_phdr->p_align = 0x1;
+  hijacked_phdr->p_align = 0x1000;
   return XELF_SUCCESS;
 }
 
@@ -339,7 +339,10 @@ int xelf_extend(t_xelf *xelf, const char *outfile) {
 }
 
 int xelf_inject(t_xelf *xelf, const char *outfile, t_payload *payload) {
-  Elf64_Phdr *cave = xelf_find_cave(xelf, payload->size);
+
+  Elf64_Phdr *cave = NULL;
+  if (!cla_provided('C'))
+    cave = xelf_find_cave(xelf, payload->size);
   if (!cave) {
     if (cla_provided('v'))
       printf("No cave big enough in the original file\n");
@@ -366,6 +369,8 @@ int xelf_inject(t_xelf *xelf, const char *outfile, t_payload *payload) {
 
 int xelf_error(void) {
   int code = xelf_errorcode(0);
+  if (!cla_provided('v'))
+    return code;
   switch (code) {
   case XELF_SUCCESS:
     break;

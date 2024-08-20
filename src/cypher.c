@@ -10,7 +10,7 @@
 #include "xelf.h"
 
 uint8_t *cypher_genkey(size_t len) {
-  return (uint8_t *)strdup("0123456789ABCDEF");
+  // return (uint8_t *)strdup("0123456789ABCDEF");
   int random_data = open("/dev/urandom", O_RDONLY);
   if (random_data < 0)
     return 0;
@@ -60,6 +60,13 @@ t_cypher *cypher_create(size_t key_len) {
   return cypher;
 }
 
+void cypher_destroy(t_cypher *cypher) {
+  if (!cypher)
+    return;
+  free(cypher->key);
+  free(cypher);
+}
+
 int cypher_encrypt_shdr(t_xelf *xelf, t_cypher *cypher, Elf64_Shdr *shdr,
                         void (*encrypt)(uint8_t *, size_t, uint8_t *, size_t)) {
   if (!xelf || !cypher || !shdr)
@@ -82,8 +89,23 @@ int cypher_encrypt_shdr(t_xelf *xelf, t_cypher *cypher, Elf64_Shdr *shdr,
   return 0;
 }
 
+void (*cypher_get_encrypt_func())(uint8_t *, size_t, uint8_t *, size_t) {
+  if (cla_provided('e')) {
+    const char *protocol = cla_value('e');
+    if (strcmp(protocol, "xor") == 0)
+      return cypher_xor;
+    if (strcmp(protocol, "aes") == 0)
+      return cypher_aes;
+  }
+  if (cla_provided('v'))
+    printf("No encryption protocol provided, using default XOR\n");
+  return cypher_xor;
+}
+
 void cypher_xor(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len) {
   for (size_t i = 0; i < data_len; i++) {
     data[i] ^= key[i % key_len];
   }
 }
+
+void cypher_aes(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len) {}

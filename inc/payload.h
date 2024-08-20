@@ -4,6 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+typedef struct xelf t_xelf;
+typedef struct cypher t_cypher;
+
 typedef struct s_placeholder {
   char *label;
   uint64_t key;
@@ -35,4 +38,7 @@ int payload_set_placeholder_key(t_payload *payload, const char *label,
                                 uint64_t key);
 int payload_set_placeholder_value(t_payload *payload, const char *label,
                                   uint64_t value);
+t_payload *payload_pick(t_xelf *xelf);
+uint8_t *payload_set_key(t_payload *payload, t_cypher *cypher);
+
 #endif // !#ifndef PAYLOAD_H

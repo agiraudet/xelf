@@ -1,5 +1,9 @@
 #include "payload.h"
+#include "aes.h"
 #include "clarg.h"
+#include "cypher.h"
+#include "hello.h"
+#include "xor.h"
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -152,18 +156,17 @@ void payload_destroy(t_payload *payload) {
 
 int payload_replace_placeholder(t_payload *payload, uint64_t key,
                                 uint64_t value) {
+  int ret = 0;
   if (!payload || !payload->data)
     return xelf_errorcode(XELF_NULLPTR);
   for (unsigned int i = 0; i < payload->size; i++) {
     long current_QWORD = *((long *)(payload->data + i));
     if (!(key ^ current_QWORD)) {
       *((long *)(payload->data + i)) = value;
-      if (cla_provided('v'))
-        printf("Replaced %lX -> %lX\n", key, value);
-      // return XELF_SUCCESS;
+      ret++;
     }
   }
-  return xelf_errorcode(XELF_PLACEHOLDER);
+  return ret;
 }
 
 int payload_replace_placeholders(t_payload *payload) {
@@ -223,4 +226,52 @@ int payload_set_placeholder_value(t_payload *payload, const char *label,
     placeholder_init(&placeholder, 0, value, label);
     return payload_add_placeholder(payload, &placeholder);
   }
+}
+
+t_payload *payload_pick(t_xelf *xelf) {
+  if (cla_provided('p')) {
+    if (cla_provided('v'))
+      printf("Loading payload from file %s\n", cla_value('p'));
+    return payload_create_from_file(cla_value('p'), xelf->ehdr->e_type);
+  }
+  if (cla_provided('x')) {
+    if (cla_provided('e')) {
+      const char *protocol = cla_value('e');
+      if (strcmp(protocol, "xor") == 0)
+        return payload_create(xor, xor_len, xelf->ehdr->e_type);
+      if (strcmp(protocol, "aes") == 0)
+        return payload_create(aes, aes_len, xelf->ehdr->e_type);
+    }
+    if (cla_provided('v'))
+      printf("No payload provided, using default XOR\n");
+    return payload_create(xor, xor_len, xelf->ehdr->e_type);
+  }
+  if (cla_provided('v'))
+    printf("No payload provided, using default Hello\n");
+  return payload_create(hello, hello_len, xelf->ehdr->e_type);
+}
+
+int ft_memcmp(const void *s1, const void *s2, size_t n) {
+  const unsigned char *p1 = s1, *p2 = s2;
+  while (n--) {
+    if (*p1 != *p2)
+      return *p1 - *p2;
+    p1++;
+    p2++;
+  }
+  return 0;
+}
+
+uint8_t *payload_set_key(t_payload *payload, t_cypher *cypher) {
+  if (!payload || !cypher)
+    return NULL;
+  const char *key_placeholder = KEY_PLACEHOLDER;
+  for (size_t i = 0; i < payload->size; i++) {
+    if (payload->data[i] == *key_placeholder &&
+        ft_memcmp(payload->data + i, KEY_PLACEHOLDER, 16) == 0) {
+      memcpy(payload->data + i, cypher->key, cypher->key_len);
+      return payload->data + i;
+    }
+  }
+  return NULL;
 }

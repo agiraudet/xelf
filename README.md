@@ -95,3 +95,67 @@ clarg_add_allowed_value(e, "<your_protocol_name>");
 ### Tips
 
 Check the encrypted data with `objdum -d -j .text <outfile>`
+
+## Demo
+
+Inject a hello world payload into a binary:
+
+```bash
+user@debian:~/xelf$ make hello
+echo -e '#include <unistd.h>\nint main(){write(1,"Hello World!\\n",13);return 0;}' | gcc -xc - -o hello
+user@debian:~/xelf$ ./hello 
+Hello World!
+user@debian:~/xelf$ ./xelf hello -o injected_hello
+user@debian:~/xelf$ ./injected_hello 
+...WOODY...
+Hello World!
+user@debian:~/xelf$ 
+```
+
+Packing a binary:
+
+```bash
+user@debian:~/xelf$ ./hello
+Hello World!
+user@debian:~/xelf$ ./xelf -x hello -o packed_hello
+user@debian:~/xelf$ ./packed_hello 
+...WOODY...
+Hello World!
+user@debian:~/xelf$ objdump -d -j .text hello
+hello:     file format elf64-x86-64
+
+Disassembly of section .text:
+  /* ... */
+0000000000401126 <main>:
+  401126: 55                    push   %rbp
+  401127: 48 89 e5              mov    %rsp,%rbp
+  40112a: ba 0d 00 00 00        mov    $0xd,%edx
+  40112f: be 10 20 40 00        mov    $0x402010,%esi
+  401134: bf 01 00 00 00        mov    $0x1,%edi
+  401139: e8 f2 fe ff ff        call   401030 <write@plt>
+  40113e: b8 00 00 00 00        mov    $0x0,%eax
+  401143: 5d                    pop    %rbp
+  401144: c3                    ret
+user@debian:~/xelf$ objdump -d -j .text packed_hello 
+packed_hello:     file format elf64-x86-64
+
+Disassembly of section .text:
+  /* ... */
+0000000000401126 <main>:
+  401126: 26 9b                 es fwait
+  401128: b2 e7                 mov    $0xe7,%dl
+  40112a: 9e                    sahf
+  40112b: 83 71 a5 9c           xorl   $0xffffff9c,-0x5b(%rcx)
+  40112f: d5 0e 8b 2b           {rex2 0xe} mov (%rbx),%r13
+  401133: 4c fe                 rex.WR (bad)
+  401135: 5e                    pop    %rsi
+  401136: 73 d3                 jae    40110b <__do_global_dtors_aux+0x1b>
+  401138: 3b ea                 cmp    %edx,%ebp
+  40113a: d6                    (bad)
+  40113b: 70 8e                 jo     4010cb <register_tm_clones+0x1b>
+  40113d: 5a                    pop    %rdx
+  40113e: 24 6b                 and    $0x6b,%al
+  401140: 1e                    (bad)
+  401141: ab                    stos   %eax,%es:(%rdi)
+  401142: 6b 11 82              imul   $0xffffff82,(%rcx),%edx
+```

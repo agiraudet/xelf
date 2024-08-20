@@ -6,9 +6,10 @@ XELF is an ELF injection/packing tool written in C. It allows you to inject payl
 
 - Load payload from file or use default payloads
 - Support for XOR and AES encryption protocols
-- Verbose mode for detailed output
 - Option to pack the ELF
 - Code caving and section extension support
+
+Currently, only 64-bit ELF binaries are supported.
 
 ## Usage
 
@@ -25,6 +26,13 @@ XELF is an ELF injection/packing tool written in C. It allows you to inject payl
 - `-c`, `--cave`: Allow code caving only.
 - `-C`, `--nocave`: Don't attempt code caving.
 - `-s`, `--section`: Extend section size in header to fit payload.
+
+If no option are specified, xelf will inject the target with a hello world payload.
+If a payload is given and not other option, that payload will be injected.
+Given the choice, xelf will look for "caves". These are empty spaces in the binary where the payload can be injected.
+This allow to inject code while not modifying the size of the binary, and be more stealthy.
+If no caves are found, xelf will extend the file and hijack a note segment header to make it point to this new space.
+Extending section size in header is useful for debugging, but is less stealthy.
 
 ## Building
 
@@ -71,4 +79,19 @@ Add your encryption functions to cypher.c with the following signature:
 void cypher_xor(uint8_t *data, size_t data_len, uint8_t *key, size_t key_len);
 ```
 
+Then modify the `cypher_get_encrypt_func()` function in cypher.c to return your function when the encryption protocol is selected:
+
+```c
+    if (strcmp(protocol, "<your_protocol_name>") == 0)
+      return cypher_my_encrypt_func;
 ```
+
+Finally, add the option to the -e flag by adding this line to `cla_compose()` in main.c:
+
+```c
+clarg_add_allowed_value(e, "<your_protocol_name>");
+```
+
+### Tips
+
+Check the encrypted data with `objdum -d -j .text <outfile>`

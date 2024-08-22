@@ -26,7 +26,7 @@ HDR_ASM		:=	$(PLD_SRCS:$(PLD_DIR)/%.asm=$(INC_DIR)/payloads/%.h)
 
 INC_FLAGS	:=	$(addprefix -I, $(INC_DIR)) $(addprefix -I, $(INC_DIR)/payloads)
 
-CXXFLAGS	:=	-MD -Wall -Wextra -g $(INC_FLAGS)
+CXXFLAGS	:=	-MD -Wall -Wextra -O2 $(INC_FLAGS)
 
 CXX				:=	gcc
 

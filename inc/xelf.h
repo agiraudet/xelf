@@ -24,7 +24,8 @@ enum e_xelf_error {
   XELF_NOSHDR = 12,
   XELF_PAYLOADSIZE = 13,
   XELF_PLACEHOLDER = 14,
-  XELF_PAYLOAD = 15
+  XELF_PAYLOAD = 15,
+  XELF_NOFILE = 16
 };
 
 typedef struct xelf {
@@ -36,6 +37,7 @@ typedef struct xelf {
   size_t size;
 } t_xelf;
 
+const char *xelf_errormsg(const char *msg);
 int xelf_error(void);
 int xelf_errorcode(int set);
 int xelf_open(t_xelf *xelf, const char *path);

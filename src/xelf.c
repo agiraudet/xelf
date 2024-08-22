@@ -2,6 +2,7 @@
 #include "clarg.h"
 #include "payload.h"
 #include <elf.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -12,6 +13,13 @@
 #include <unistd.h>
 
 #define PAGE_SIZE 0x1000
+
+const char *xelf_errormsg(const char *msg) {
+  static const char *error = NULL;
+  if (msg)
+    error = msg;
+  return error;
+}
 
 int xelf_errorcode(int set) {
   static int code = XELF_SUCCESS;
@@ -26,8 +34,10 @@ int xelf_open(t_xelf *xelf, const char *path) {
   if (!xelf || !path)
     return xelf_errorcode(XELF_NULLPTR);
   int fd = open(path, O_RDWR);
-  if (fd == -1)
+  if (fd == -1) {
+    xelf_errormsg(path);
     return xelf_errorcode(XELF_OPEN);
+  }
   xelf->size = lseek(fd, 0, SEEK_END);
   xelf->map = mmap(0, xelf->size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, 0);
   close(fd);
@@ -304,6 +314,9 @@ int xelf_phdr_hijack(t_xelf *xelf, Elf64_Phdr *hijacked_phdr, size_t new_size) {
 int xelf_hijack(t_xelf *xelf, const char *outfile, t_payload *payload) {
   if (!xelf)
     return xelf_errorcode(XELF_NULLPTR);
+  if (cla_provided('v'))
+    printf("Hijacking segment\n");
+
   if (payload && payload->size > PAGE_SIZE)
     return xelf_errorcode(XELF_PAYLOADSIZE);
   Elf64_Phdr *hijacked_phdr = xelf_phdr_from_type(xelf, PT_NOTE);
@@ -378,10 +391,11 @@ int xelf_error(void) {
     fprintf(stderr, "Error: NULL pointer\n");
     break;
   case XELF_OPEN:
-    fprintf(stderr, "Error: open failed\n");
+    fprintf(stderr, "Error: could not open: %s: %s\n", xelf_errormsg(NULL),
+            strerror(errno));
     break;
   case XELF_MAPFAIL:
-    fprintf(stderr, "Error: mmap failed\n");
+    fprintf(stderr, "Error: mmap failed: %s\n", strerror(errno));
     break;
   case XELF_ELFMAGIC:
     fprintf(stderr, "Error: invalid ELF magic\n");
@@ -405,16 +419,19 @@ int xelf_error(void) {
     fprintf(stderr, "Error: payload size too big\n");
     break;
   case XELF_WRITE:
-    fprintf(stderr, "Error: write failed\n");
+    fprintf(stderr, "Error: write failed: %s\n", strerror(errno));
     break;
   case XELF_NOTFOUND:
     fprintf(stderr, "Error: not found\n");
     break;
   case XELF_PLACEHOLDER:
-    fprintf(stderr, "Error: placeholder not found\n");
+    fprintf(stderr, "Error: placeholder not found: %s\n", xelf_errormsg(NULL));
     break;
   case XELF_PAYLOAD:
     fprintf(stderr, "Error: payload not found\n");
+    break;
+  case XELF_NOFILE:
+    fprintf(stderr, "Error: File does not exist\n");
     break;
   default:
     fprintf(stderr, "Error: unknown error: %d\n", code);

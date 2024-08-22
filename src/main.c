@@ -28,6 +28,7 @@ void cla_compose(void) {
   cla_arg('c', "cave", "Allow code caving only");
   cla_arg('C', "nocave", "Disallow code caving");
   cla_arg('s', "section", "Extend section size in header to fit payload");
+  cla_arg('n', "naked", "Dont add entry and exit stubs to paylaod.");
 }
 
 t_cypher *load_cypher(void) {

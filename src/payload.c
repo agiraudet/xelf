@@ -85,7 +85,7 @@ t_payload *payload_create(uint8_t *data, size_t size, uint16_t e_type) {
     exit_size = exit_dynamic_len;
   } else {
     if (cla_provided('v'))
-      printf("Creating payload for ???\n");
+      printf("Creating naked payload\n");
     entry_data = 0;
     entry_size = 0;
     exit_data = 0;
@@ -98,9 +98,11 @@ t_payload *payload_create(uint8_t *data, size_t size, uint16_t e_type) {
     xelf_errorcode(XELF_MALLOC);
     return NULL;
   }
-  memcpy(payload->data, entry_data, entry_size);
+  if (entry_data)
+    memcpy(payload->data, entry_data, entry_size);
   memcpy(payload->data + entry_size, data, size);
-  memcpy(payload->data + entry_size + size, exit_data, exit_size);
+  if (exit_data)
+    memcpy(payload->data + entry_size + size, exit_data, exit_size);
   payload->placeholders = malloc(sizeof(t_placeholder));
   if (!payload->placeholders) {
     xelf_errorcode(XELF_MALLOC);
@@ -232,7 +234,12 @@ t_payload *payload_pick(t_xelf *xelf) {
   if (cla_provided('p')) {
     if (cla_provided('v'))
       printf("Loading payload from file %s\n", cla_value('p'));
+    if (cla_provided('n'))
+      return payload_create_from_file(cla_value('p'), ET_NONE);
     return payload_create_from_file(cla_value('p'), xelf->ehdr->e_type);
+  } else if (cla_provided('n')) {
+    fprintf(stderr, "Default payload cannot be naked. Use -p.\n");
+    return NULL;
   }
   if (cla_provided('x')) {
     if (cla_provided('e')) {

@@ -1,8 +1,17 @@
 BITS 64
 section .text
-	jmp	print_woody
+	jmp	save
   key: db 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x00
 	message:	db	"...WOODY...", 0xa
+
+save:
+  push r11
+  push r10
+  push r8
+  push rdi
+  push rbx
+  push rdx
+  push rax
 
 print_woody:
 	xor	rax, rax					; Zero out RAX
@@ -13,9 +22,17 @@ print_woody:
 	mov dl, 0xC					; message size = 57 bytes (0x39)
 	syscall					
 
+restore:
+  pop rax
+  pop rdx
+  pop rbx
+  pop rdi
+  pop r8
+  pop r10
+  pop r11
+
 set_dyn_address:
   mov rax, 0x1
-  pop r11
   cmp rax, r11
   jne set_exec_address
   mov r10, 0xCCCCCCCCCCCCCCCC ;use same technique to find og entry point (0xCC...C is offset)
@@ -24,7 +41,6 @@ set_dyn_address:
   jmp decrypt_init
 
 set_exec_address:
-  push r11
   mov rsi, 0xCCCCCCCCCCCCCCCC   ; Load the address of the ciphertext
 
 decrypt_init:
